@@ -96,16 +96,7 @@ function getNumberOfBags(arrayOfBags, allBags, currentBagCount = 0) {
           } else {
             return currentBagCount;
           }
-        } else {
-          console.log("Ovo se nikad ne dešava");
-          arrayOfBags.splice(0, 1);
-          return getNumberOfBags(arrayOfBags, allBags, currentBagCount);
         }
-      } else {
-        console.log("Ovo se ne dešava");
-        console.log(currentBag);
-        arrayOfBags.splice(0, 1);
-        return getNumberOfBags(arrayOfBags, allBags, currentBagCount);
       }
     }
   } else {
@@ -113,13 +104,54 @@ function getNumberOfBags(arrayOfBags, allBags, currentBagCount = 0) {
   }
 }
 
+function getBags(bags, hashMap, totalSum) {
+  for (const bag of bags) {
+    let count = bag.amount;
+
+    if (bag) {
+    } else {
+      totalSum += count;
+    }
+  }
+}
+
+{
+  if (hashMap[bag.bagName]) {
+    return bagAmount * getBags(hashMap[bag.bagName]);
+  } else {
+    return bag.amount;
+  }
+}
+
 fs.readFile("input.txt", "utf-8", function (err, data) {
   if (err) throw err;
   const arrayOfInputs = data.split("\n");
+  const hashMap = {};
+
+  for (const input of arrayOfInputs) {
+    const [name, content] = input.split("contain");
+    const insideBagArray = content.split(",").map((i) => i.trim());
+    let tempArr = [];
+    insideBagArray.forEach((bag) => {
+      if (/\d/.test(bag)) {
+        const bagSplit = bag.split(" ");
+        tempArr.push({
+          amount: parseInt(bagSplit[0]),
+          bagName: bagSplit.slice(1).join(" ").replace(".", "").trim(),
+        });
+      }
+    });
+
+    hashMap[name.trim()] = tempArr;
+  }
+
   const target = "shiny gold bags";
-  const goldenBagRule = findBagRules(target, arrayOfInputs);
-  const [name, content] = goldenBagRule.split("contain");
-  const insideBagArray = content.split(",").map((i) => i.trim());
-  const totalNumberOfBags = getNumberOfBags(insideBagArray, arrayOfInputs);
-  console.log(totalNumberOfBags);
+  let totalSum = 0;
+  const totalCount = getBags(hashMap[target], hashMap, totalSum);
+
+  // const goldenBagRule = findBagRules(target, arrayOfInputs);
+  // const content = goldenBagRule.split("contain")[1];
+  // const insideBagArray = content.split(",").map((i) => i.trim());
+  // const totalNumberOfBags = getNumberOfBags(insideBagArray, arrayOfInputs);
+  // console.log(totalNumberOfBags);
 });
