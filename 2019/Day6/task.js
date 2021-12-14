@@ -41,59 +41,72 @@ function part1() {
   });
 }
 
-//part1();
+part1();
 
 /**
  * Part 2
  */
 function part2() {
-  function getNumberOfTransfers(
-    orbit,
-    target,
-    orbitWhoHashMap,
-    orbitedByHashMap
-  ) {
-    let sum = 1;
+  function getPathToCOM(hashMap, target, path = []) {
+    if (target.parent) {
+      path.push(target.parent);
+      return getPathToCOM(hashMap, hashMap[target.parent], path);
+    }
 
-    /**
-     * Za svaku orbitu provjeriti proći kroz sva tijela koja je orbituje
-     * Za svaku orbitu
-     * orbitedByHashMap[orbit]
-     */
+    return path;
+  }
 
-    return sum;
+  function getNumberOfTransfers(orbit, target, orbitHashMap) {
+    let pathOfYou = getPathToCOM(orbitHashMap, orbitHashMap[orbit.parent]);
+    let pathOfSan = getPathToCOM(orbitHashMap, orbitHashMap[target.parent]);
+    let closestPath;
+
+    for (let i = 0; i < pathOfYou.length; i++) {
+      let index = pathOfSan.findIndex((el) => el === pathOfYou[i]);
+
+      if (index !== -1) {
+        // +1 for both ends to reach common parent
+        closestPath = index + 1 + (i + 1);
+        break;
+      }
+    }
+    return closestPath;
   }
 
   fs.readFile("input.txt", "utf-8", function (err, data) {
     if (err) throw err;
     const arrayOfInputs = data.split("\n").map((i) => i.split(")"));
-    const orbitedByHashMap = {};
-    const orbitWhoHashMap = {};
+    const orbitHashMap = {};
     const YOU = "YOU";
     const SAN = "SAN";
 
     arrayOfInputs.forEach((input) => {
-      if (!orbitedByHashMap.hasOwnProperty(input[0])) {
-        orbitedByHashMap[input[0]] = [input[1]];
+      if (!orbitHashMap.hasOwnProperty(input[0])) {
+        orbitHashMap[input[0]] = {
+          children: [input[1]],
+          parent: null,
+        };
       } else {
-        orbitedByHashMap[input[0]].push(input[1]);
+        orbitHashMap[input[0]].children.push(input[1]);
       }
 
-      if (!orbitWhoHashMap.hasOwnProperty(input[1])) {
-        orbitWhoHashMap[input[1]] = input[0];
+      if (!orbitHashMap.hasOwnProperty(input[1])) {
+        orbitHashMap[input[1]] = {
+          children: [],
+          parent: input[0],
+        };
+      } else {
+        orbitHashMap[input[1]].parent = input[0];
       }
     });
 
-    console.log("Orbited by: ");
-    console.log(orbitedByHashMap);
-    console.log("Orbits who:");
-    console.log(orbitWhoHashMap);
-
-    let sum = getNumberOfTransfers(
-      orbitWhoHashMap[YOU],
-      orbitWhoHashMap[SAN],
-      orbitWhoHashMap,
-      orbitedByHashMap
+    let closestPath = getNumberOfTransfers(
+      orbitHashMap[YOU],
+      orbitHashMap[SAN],
+      orbitHashMap
+    );
+    console.log(
+      `Closest path between orbits ${SAN} and ${YOU} is ${closestPath}`
     );
   });
 }
