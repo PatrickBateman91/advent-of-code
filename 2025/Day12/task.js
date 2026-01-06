@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-/* Link to task description: https://adventofcode.com/2025/day/1 */
+/* Link to task description: https://adventofcode.com/2025/day/12 */
 
 /**
  * Part 1

@@ -40,68 +40,52 @@ function part1() {
     });
 
     let currentRowIdx = 0;
-    while (
-      currentRowIdx < 2 ||
-      Object.values(indicatorData).every(
-        (x) => x.Min !== Number.MAX_SAFE_INTEGER
-      )
-    ) {
-      console.log(currentRowIdx);
+    let curentRowButtonPress = 1;
+    while (currentRowIdx < Object.keys(indicatorData).length) {
       var currentButtons = indicatorData[currentRowIdx].Buttons;
       var desiredConfiguration = indicatorData[currentRowIdx].Indicators;
       var currentMin = Number.MAX_SAFE_INTEGER;
-      var combinations = getAllCombinationsForButton(currentButtons);
 
-      // // Get all possible combinations
-      // for (let i = 0; i < currentButtons.length; i++) {
-      //   var buttonCombinations =
-      //   combinations.push(...buttonCombinations);
-      // }
+      var combinations = getAllCombinationsForButton(
+        currentButtons.length,
+        curentRowButtonPress
+      );
 
-      // Calculate all combinations
-      //combinations = [[[3], [1, 3], [2]]];
       for (let i = 0; i < combinations.length; i++) {
-        let reachedDesiredPattern = false;
-        let currentConfiguration = new Array(desiredConfiguration.length)
-          .fill(".")
-          .join("");
+        let currentConfiguration = ".".repeat(desiredConfiguration.length);
+        let currentPressCount = combinations[i].length;
 
-        let tempMin = Number.MAX_SAFE_INTEGER;
+        if (currentPressCount >= currentMin) continue;
 
         for (let j = 0; j < combinations[i].length; j++) {
-          if (j > tempMin) break;
-
           currentConfiguration = pressButton(
             currentConfiguration,
-            combinations[i][j]
+            currentButtons[combinations[i][j]]
           );
-
-          // console.log(
-          //   `Comparing: ${currentConfiguration} vs ${desiredConfiguration}`
-          // );
-          if (currentConfiguration === desiredConfiguration) {
-            reachedDesiredPattern = true;
-            tempMin = j;
-            break;
-          }
         }
 
-        if (reachedDesiredPattern && tempMin < currentMin) currentMin = tempMin;
+        if (currentConfiguration === desiredConfiguration) {
+          currentMin = currentPressCount;
+        }
       }
 
-      // Save min and move to next row
-      indicatorData[currentRowIdx].Min = currentMin;
-      currentRowIdx++;
+      // If new min is defined => break and start new row
+      if (currentMin !== Number.MAX_SAFE_INTEGER) {
+        indicatorData[currentRowIdx].Min = currentMin;
+        currentRowIdx++;
+        curentRowButtonPress = 1;
+      }
+      // Raise allowed press count
+      else {
+        curentRowButtonPress++;
+      }
     }
 
-    console.log(indicatorData);
-
-    // remove buttons which can't control anything if any
-    // Recursively (performance wise from from while loop) you need to make runs from each buttons and have other button positions as alternative timelines. Save each min, so you can early return.
-    // Starting position if all off?
-    // So how many times do we click each button before continuing with the next button? Until we hit repeat or something?
-
-    //console.log(`Max square are between two red tiles is: ${maxSquareCount}`);
+    var sum = Object.values(indicatorData).reduce(
+      (acc, curr) => acc + curr.Min,
+      0
+    );
+    console.log(`Total sum of fewest possible combinations is ${sum}`);
   });
 }
 
@@ -116,39 +100,32 @@ function pressButton(currentConfiguration, buttonIndexes) {
   return currentConfiguration;
 }
 
-function getAllCombinationsForButton(buttons) {
-  var combinations = [];
-  for (let i = 0; i < buttons.length; i++) {
-    if (i === 0) {
-      combinations.push([buttons[i]]);
-      combinations.push([buttons[i], buttons[i]]);
-      continue;
+function getAllCombinationsForButton(buttonCount, maxLength) {
+  var combinations = [[]];
+
+  for (let i = 0; i < maxLength; i++) {
+    var current = [];
+
+    for (let j = 0; j < combinations.length; j++) {
+      var currentCombo = combinations[j];
+
+      // remove same items in different order
+      var start =
+        currentCombo.length === 0
+          ? 0
+          : currentCombo[currentCombo.length - 1] + 1;
+
+      for (let z = start; z < buttonCount; z++) {
+        if (combinations[j].includes(z)) continue;
+
+        current.push([...combinations[j], z]);
+      }
     }
 
-    var combinationsToAdd = [];
-
-    for (let j = 0; j < buttons.length; j++) {
-      combinations.forEach((combination) => {
-        var combo1 = combination.toSpliced(j, 0, buttons[i]);
-        var combo2 = combination.toSpliced(j, 0, buttons[i], buttons[i]);
-        combinationsToAdd.push(combo1);
-        combinationsToAdd.push(combo2);
-      });
-    }
-
-    combinations = combinationsToAdd;
-
-    // svaki index: kreiraj
-
-    /**
-     * Index 0 kreira sebe 1x i 2x
-     * Index 1 doda nove dvije kombinacije koji su duplikati prethodnih + sebe doda 1x i 2x na obje
-     * Index 2 doda prethodne duplikate i doda sebe na sve druge pozicije osim 0
-     * Index 3 duplicira prethodne i doda sebe na sve druge pozicije osim na 0
-     */
+    combinations.push(...current);
   }
 
-  return combinations;
+  return combinations.filter((x) => x.length > 0 && x.length <= maxLength);
 }
 
 part1();
@@ -156,85 +133,140 @@ part1();
 /**
  * Part 2
  */
-// function part2() {
-//   fs.readFile("input.txt", "utf-8", function (err, data) {
-//     if (err) throw err;
+const indicatorData = {};
 
-//     const eligibleRowPositions = {};
+function part2() {
+  fs.readFile("input.txt", "utf-8", function (err, data) {
+    if (err) throw err;
 
-//     var redTileCoordinates = [];
-//     var rows = data.split("\n");
-//     rows.forEach((row) => {
-//       var coordinates = row.split(",");
+    // Parse data
+    data.split("\n").forEach((row, rowIdx) => {
+      row.split(" ").forEach((rowItem) => {
+        if (indicatorData[rowIdx] === undefined)
+          indicatorData[rowIdx] = {
+            JoltageRequired: [],
+            Buttons: [],
+            Min: Number.MAX_SAFE_INTEGER,
+          };
+        // Handle joltage
+        if (rowItem[0] === "{")
+          indicatorData[rowIdx].JoltageRequired = [
+            ...rowItem
+              .slice(1, rowItem.length - 1)
+              .split(",")
+              .map((x) => parseInt(x)),
+          ];
 
-//       if (eligibleRowPositions[coordinates[1]] === undefined)
-//         eligibleRowPositions[coordinates[1]] = [];
+        // Handle buttons
+        if (rowItem[0] === "(") {
+          indicatorData[rowIdx].Buttons.push(
+            rowItem
+              .slice(1, rowItem.length - 1)
+              .split(",")
+              .map((x) => parseInt(x))
+          );
+        }
+      });
+    });
 
-//       eligibleRowPositions[coordinates[1]].push(parseInt(coordinates[0]));
-//       redTileCoordinates.push(coordinates.map((x) => parseInt(x)));
-//     });
+    var numberOfRows = Object.keys(indicatorData).length;
 
-//     // Mark all green tiles by straight line
-//     for (let i = 0; i < redTileCoordinates.length; i++) {
-//       var row1, row2;
+    let currentRowIdx = 0;
+    while (currentRowIdx < numberOfRows) {
+      // Sort buttons by size, higher to lower
+      let currentButtons = indicatorData[currentRowIdx].Buttons.sort((a, b) => b.length - a.length);;
+      let desiredJoltage = indicatorData[currentRowIdx].JoltageRequired;
 
-//       if (i === redTileCoordinates.length - 1) {
-//         row1 = redTileCoordinates[i];
-//         row2 = redTileCoordinates[0];
-//       } else {
-//         row1 = redTileCoordinates[i];
-//         row2 = redTileCoordinates[i + 1];
-//       }
+      let maxPressCount = new Array(currentButtons.length).fill(0);
 
-//       var greenTilesInBetween = getTilesInBetween(row1, row2);
-//       greenTilesInBetween.forEach((tileCoordinate) => {
-//         if (eligibleRowPositions[tileCoordinate[1]] === undefined)
-//           eligibleRowPositions[tileCoordinate[1]] = [];
+      // Loop each button and calculate how many times it can be pressed before reaching desired joltage for each index
+      for (let j = 0; j < currentButtons.length; j++) {
+        let min = Number.MAX_SAFE_INTEGER;
 
-//         eligibleRowPositions[tileCoordinate[1]].push(tileCoordinate[0]);
-//       });
-//     }
+        for (let k = 0; k < currentButtons[j].length; k++) {
+          let btnIdx = currentButtons[j][k];
+          if (desiredJoltage[btnIdx] < min) min = desiredJoltage[btnIdx];
+        }
 
-//     const eligibleRowBoundaries = {};
+        // Save max press count
+        maxPressCount[j] = min;
+      }
 
-//     // Add looped green tiles
-//     Object.entries(eligibleRowPositions).forEach(([key, value]) => {
-//       eligibleRowBoundaries[key] = [Math.min(...value), Math.max(...value)];
-//     });
+      // Press counters
+      let currentPressArray = new Array(currentButtons.length).fill(0);
+      let isComplete = false;
 
-//     console.log(eligibleRowBoundaries);
+      while (!isComplete) {
+        var tempJoltage = new Array(
+          indicatorData[currentRowIdx].JoltageRequired.length
+        ).fill(0);
 
-//     // Calculate max square area
-//     let maxSquareCount = 0;
+        let totalPressCount = 0;
+        let valid = true;
 
-//     var sortedRedLineCoordinatesByRow = redTileCoordinates.sort(
-//       (a, b) => a[1] - b[1]
-//     );
-//     //console.log(sortedRedLineCoordinatesByRow);
+        for (let j = 0; j < currentButtons.length; j++) {
+          if (currentPressArray[j] === 0) continue;
 
-//     for (let i = 0; i < sortedRedLineCoordinatesByRow.length; i++) {
-//       for (let j = i; j < sortedRedLineCoordinatesByRow.length; j++) {
-//         if (
-//           i === j ||
-//           !isCoordinateCombinationEligible(
-//             sortedRedLineCoordinatesByRow[i],
-//             sortedRedLineCoordinatesByRow[j],
-//             eligibleRowBoundaries
-//           )
-//         )
-//           continue;
+          // Break early if total press count already above current min
+          totalPressCount += currentPressArray[j];
+          if (totalPressCount >= indicatorData[currentRowIdx].Min) {
+            valid = false;
+            break;
+          }
 
-//         var squareCountCandidate = calcSquares(
-//           sortedRedLineCoordinatesByRow[i],
-//           sortedRedLineCoordinatesByRow[j]
-//         );
-//         if (squareCountCandidate > maxSquareCount)
-//           maxSquareCount = squareCountCandidate;
-//       }
-//     }
+          for (let k = 0; k < currentButtons[j].length; k++) {
+            let idx = currentButtons[j][k];
+            tempJoltage[idx] += currentPressArray[j];
 
-//     console.log(`Max square are between two red tiles is: ${maxSquareCount}`);
-//   });
-// }
+            if (tempJoltage[idx] > desiredJoltage[idx]) {
+              valid = false;
+              break;
+            }
+          }
 
-// part2();
+          // Break early if any joltage exceeds desired count
+          if (!valid) break;
+        }
+
+        // Mark as invalid if any current != desired
+        if (valid) {
+          for (let j = 0; j < desiredJoltage.length; j++) {
+            if (tempJoltage[j] !== desiredJoltage[j]) {
+              valid = false;
+              break;
+            }
+          }
+        }
+
+        // Update minimum if valid and smaller than previous min
+        if (valid && totalPressCount < indicatorData[currentRowIdx].Min) {
+          indicatorData[currentRowIdx].Min = totalPressCount;
+        }
+
+        // Get next press combination
+        let currentPosition = 0;
+        while (currentPosition < currentButtons.length) {
+          currentPressArray[currentPosition]++;
+          if (
+            currentPressArray[currentPosition] <= maxPressCount[currentPosition]
+          )
+            break;
+          currentPressArray[currentPosition] = 0;
+          currentPosition++;
+        }
+
+        if (currentPosition === currentButtons.length) isComplete = true;
+      }
+
+      currentRowIdx++;
+    }
+
+    var sum = Object.values(indicatorData).reduce(
+      (acc, curr) => acc + curr.Min,
+      0
+    );
+    console.log(`Total sum of fewest possible combinations is ${sum}`);
+  });
+}
+
+//part2();
