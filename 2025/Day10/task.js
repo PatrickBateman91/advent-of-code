@@ -176,12 +176,13 @@ function part2() {
       // Sort buttons by size, higher to lower
       let currentButtons = indicatorData[currentRowIdx].Buttons.sort((a, b) => b.length - a.length);;
       let desiredJoltage = indicatorData[currentRowIdx].JoltageRequired;
+      indicatorData[currentRowIdx].Min = desiredJoltage.reduce((acc, curr) => acc + curr, 0);
 
       let maxPressCount = new Array(currentButtons.length).fill(0);
 
       // Loop each button and calculate how many times it can be pressed before reaching desired joltage for each index
       for (let j = 0; j < currentButtons.length; j++) {
-        let min = Number.MAX_SAFE_INTEGER;
+        let min =  indicatorData[currentRowIdx].Min;
 
         for (let k = 0; k < currentButtons[j].length; k++) {
           let btnIdx = currentButtons[j][k];
@@ -269,4 +270,4 @@ function part2() {
   });
 }
 
-//part2();
+part2();

@@ -149,15 +149,6 @@ function isCoordinateCombinationEligible(
 }
 
 function getDirection(coords1, coords2) {
-  // 11, 1
-  // 7, 1
-  // 3, 4
-  // 3, 1
-  // Left - right:
-  // Right - left
-  // Top - bottom
-  // Bottom- top
-
   // Move horizontally
   if (coords1[1] === coords2[1]) {
     return coords1[0] > coords2[0] ? LEFT : RIGHT;

@@ -9,29 +9,17 @@ function part1() {
   fs.readFile("input.txt", "utf-8", function (err, data) {
     if (err) throw err;
 
-    /*
-      Shapes dictionary:
-      index key
-      value: array of three za svaki row 
-      ###
-      .#.
-      ###
-      [[0,1,2], [1], [0,1,2]]
-
-      Areas, stored in list, each area a dictionary:
-      area: [4,4]
-      index key: req
-      index 0 : 3
-    */
-
     const shapesDict = {};
     const areaList = [];
+
+
 
     // Split data
     let currentShape = [];
     let currentShapeIndex;
     const numberOfGifts = 5;
     let giftsMapped = 0;
+
     data.split("\n").forEach((row) => {
       // Handle shapes
       if (giftsMapped <= numberOfGifts) {
@@ -78,137 +66,61 @@ function part1() {
       }
     });
 
-    // Loop regions
-    let areaIndex = 0;
-    let validAreas = [];
+    var eligibleAreaList = [];
 
-    while (areaIndex < areaList.length) {
-      // Array of array, svaki array uključuje jednu poziciju gifta, pa se puni s vremenom. Kad gift ne može da stane, miče se iz liste
-      var updatedGiftPositions = [];
-      // Za prvi poklon pronaći sve pozicije na koje može da stane, za svaki rotation (0, 90, 180, 270)
-      // Za ostale pronaći sve pozicije u koje može da se uklopi s ostalim poklonima, i obrisati sve navalidne pozicije
-      // Za posljednju iteraciju posljednjeg poklona pronaći prvu poziciju na kojoj se uklopi, i dodati u validAreas, resetovati sve temp varijable i dići area index
+    // Filter out gifts that can't fit in any shape
+    for (let i = 0; i < areaList.length; i++) {
+      const areaSpace =
+        areaList[i].SpaceAvailable[0] * areaList[i].SpaceAvailable[1];
+      let filledCount = 0;
+      let outOfBound = false;
 
-      // prvi gift treba stati 5 puta:
-      // area je prazan:
-      // prva iteracija:
-      // vraća flat listu svi eligible pozicija za svaku svoju rotaciju: [{"0" : [0, 1,2], "1" : [1,2], "2" : [1], }, [...], [...]]
-
-      // druga i svaka iduća iteracija:
-      // prolazi kroz svaku listu prve iteracije i od nje pravi n listi: svaka pozicija unutar te liste gdje ona može stati je nova lista, za svaku rotaciju
-
-      // treća iteracija
-      // ako dođem do kraja trenutne liste, i nisam uspio dodati => markiraj listu kao invalidnu i izbriši je
-
-      // funckije koje treba dodati: getRotatedShape (0, 90, 180. 270), fill area with current positions, create area, canFit?
-
-      // Loop thru all gifts
-      for (let i = 0; i < numberOfGifts; i++) {
-        // Loop thru all instances of current gift
-        for (let j = 0; j < areaList[areaIndex][i]; j++) {
-          // Get all (8) shapes and flips
-          var rotatedShapes = getRotatedShapes();
-          const giftPossibilities = [];
-          // Find all possible positions for a single shape
-          for (let k = 0; k < rotatedShapes.length; k++) {
-            // First iteration of the first gifts creates array, other always expand on it
-            if (i === 0 && j === 0) {
-              const initialPositions = getPossiblePositionsForFirstGift(
-                rotatedShapes[k],
-                areaList[areaIndex]
-              );
-              giftPossibilities.push(...initialPositions);
-            } else {
-              // Other iterations will always return full new list for that shape => merge all shapes once done and that will be new possibilities list
-              var updatedPositions = getPossiblePositionsForOtherGifts(
-                rotatedShapes[k],
-                updatedGiftPositions,
-                areaList[areaIndex]
-              );
-              giftPossibilities.push(...updatedPositions);
-            }
-          }
-
-          // After gift is done => replace currently existing possibilities
-          updatedGiftPositions = giftPossibilities;
+      for (let j = 0; j <= numberOfGifts; j++) {
+        var shapeCount = shapesDict[j].reduce(
+          (acc, curr) => acc + curr.length,
+          0
+        );
+      filledCount += (areaList[i][j] || 0) * shapeCount;
+        if (filledCount > areaSpace) {
+          outOfBound = true;
+          break;
         }
       }
 
-      if (updatedGiftPositions.length === 0) areaIndex++;
+      if (!outOfBound) {
+        eligibleAreaList.push(areaList[i]);
+      }
     }
 
-    console.log(shapesDict);
-    console.log(areaList);
+    var giftsThatCanFitInAnyShape =  [];
+
+    // Gifts that can fit in any shape
+    for (let i = 0; i < eligibleAreaList.length; i++) {
+      const areaSpace =
+        eligibleAreaList[i].SpaceAvailable[0] *
+        eligibleAreaList[i].SpaceAvailable[1];
+      let filledCount = 0;
+      let outOfBound = false;
+
+      for (let j = 0; j <= numberOfGifts; j++) {
+        filledCount += eligibleAreaList[i][j] * 9;
+
+        if (filledCount > areaSpace) {
+          outOfBound = true;
+          break;
+        }
+      }
+
+      if (!outOfBound) {
+        giftsThatCanFitInAnyShape.push(areaList[i]);
+      }
+    }
+
+    if(eligibleAreaList.length == giftsThatCanFitInAnyShape.length)
+      console.log(`Total number of areas that can fit their gifts is ${giftsThatCanFitInAnyShape.length}`)
+    else
+      throw new Error("Get a pen & pencil then");
   });
 }
 
-function getRotatedShapes() {}
-
-function getPossiblePositionsForOtherGifts(shape, currentPossibilities, area) {
-  const updatedPossibilities = [];
-
-  // Loop thru current possibilities, and either expand on them, or remove them
-  for (let i = 0; i < currentPossibilities.length; i++) {
-    for (let i = 0; i < area[0]; i++) {
-      for (let j = 0; j < area[1]; j++) {
-        const updatedArea = fillArea(area, currentPossibilities[i]);
-        var shapePositions = canFitShape(shape, [i, j], updatedArea);
-
-        if (shapePositions !== undefined)
-          updatedPossibilities.push(shapePositions);
-      }
-    }
-  }
-
-  return updatedPossibilities;
-}
-
-function getPossiblePositionsForFirstGift(shape, area) {
-  const possibilities = [];
-
-  // Loop every row, every column and add all possibilities
-
-  for (let i = 0; i < area[0]; i++) {
-    for (let j = 0; j < area[1]; j++) {
-      var shapePositions = canFitShape(shape, [i, j], area);
-
-      if (shapePositions !== undefined) possibilities.push(shapePositions);
-    }
-  }
-
-  return possibilities;
-}
-
-function canFitShape(shape, currentPosition, area) {}
-
-function fillArea(area, currentPositions) {}
-
 part1();
-
-/**
- * Part 2
- */
-
-// function part2() {
-//   fs.readFile("input.txt", "utf-8", function (err, data) {
-//     if (err) throw err;
-
-//     data.split("\n").forEach((row) => {
-//       const [start, path] = row.split(":");
-//       const paths = path.split(" ").filter((x) => x !== "");
-
-//       deviceDict[start] = paths;
-//     });
-
-//     var hitTracker = getCondensedPathsToOut("svr", {
-//       fftHit: 0,
-//       dacHit: 0,
-//       bothHit: 0,
-//       totalHits: 0,
-//     });
-
-//     console.log(`Total hit counter is ${hitTracker.bothHit}`);
-//   });
-// }
-
-// part2();
